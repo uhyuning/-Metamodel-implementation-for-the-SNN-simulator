@@ -1,0 +1,29 @@
+{
+  "model_name": "Minimal_LIF_Model",
+  "target_simulator": "BindsNET",
+  "time_steps": 100,
+  "layers": [
+    {
+      "layer_id": "L1_Input",
+      "layer_type": "Input",
+      "shape": [784]
+    },
+    {
+      "layer_id": "L2_LIF",
+      "layer_type": "Dense",
+      "neuron_type": "LIF",
+      "size": 100,
+      "parameters": {
+        "v_th": 1.0,
+        "tau_m": 10.0
+      }
+    }
+  ],
+  "connections": [
+    {
+      "pre_layer": "L1_Input",
+      "post_layer": "L2_LIF",
+      "connection_type": "AllToAll"
+    }
+  ]
+}
