@@ -1,1 +1,40 @@
- 
+# 생성된 파일: {{ model_name }}.py
+# 대상 시뮬레이터: BindsNET
+import torch
+from bindsnet.network import Network
+from bindsnet.network.nodes import LIF, Input 
+from bindsnet.network.topology import Connection
+import numpy as np
+
+# ----------------- 1. 네트워크 및 시간 설정 -----------------
+network = Network(dt={{ time_steps }})
+
+# ----------------- 2. 레이어 생성 -----------------
+{% for layer in layers %}
+{% if layer.layer_type == 'Input' %}
+{{ layer.layer_id }} = Input(n={{ layer.shape[0] }})
+{% elif layer.layer_type == 'Dense' and layer.neuron_type == 'LIF' %}
+{{ layer.layer_id }} = LIF(n={{ layer.size }}, v_th={{ layer.parameters.v_th }}, tau_mem={{ layer.parameters.tau_m }})
+{% endif %}
+network.add_layer({{ layer.layer_id }}, name='{{ layer.layer_id }}')
+{% endfor %}
+
+# ----------------- 3. 연결 설정 -----------------
+{% for conn in connections %}
+connection_{{ conn.pre_layer }}_{{ conn.post_layer }} = Connection(
+    source={{ conn.pre_layer }}, 
+    target={{ conn.post_layer }}, 
+    nu=[1e-4, 1e-2] # 임시 학습률
+)
+network.add_connection(connection_{{ conn.pre_layer }}_{{ conn.post_layer }}, source={{ conn.pre_layer }}, target={{ conn.post_layer }})
+{% endfor %}
+
+# ----------------- 4. 시뮬레이션 예시 -----------------
+if __name__ == '__main__':
+    # 임의의 입력 데이터 (784 차원) 생성
+    input_data = torch.from_numpy(np.random.rand(1, {{ layers[0].shape[0] }})).float() 
+    
+    inputs = {'{{ layers[0].layer_id }}': input_data}
+    print(f"Running BindsNET simulation for {{ time_steps }} steps...")
+    network.run(inputs=inputs, time={{ time_steps }})
+    print("Simulation finished.")

@@ -6,6 +6,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src')) 
 
 from parser import load_and_validate_metamodel
+from codegen import generate_snn_code
 
 def main():
     print("--- SNN Metamodel Code Generator Started ---")
@@ -22,7 +23,7 @@ def main():
         # 3. 파싱된 데이터를 사용하여 다음 단계 (코드 생성) 진행
         # print(f"Target Simulator: {model_spec['target_simulator']}")
         
-        # TODO: 여기에 코드 생성 함수 호출 로직 추가 (다음 단계)
+        generate_snn_code(model_spec)
         
     except Exception as e:
         print(f"\n[FATAL ERROR] Project execution failed: {e}")
