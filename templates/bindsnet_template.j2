@@ -12,8 +12,10 @@ network = Network(dt={{ time_steps }})
 # ----------------- 2. 레이어 생성 -----------------
 {% for layer in layers %}
 {% if layer.layer_type == 'Input' %}
+# Python 코드:
 {{ layer.layer_id }} = Input(n={{ layer.shape[0] }})
 {% elif layer.layer_type == 'Dense' and layer.neuron_type == 'LIF' %}
+# Python 코드:
 {{ layer.layer_id }} = LIF(n={{ layer.size }}, v_th={{ layer.parameters.v_th }}, tau_mem={{ layer.parameters.tau_m }})
 {% endif %}
 network.add_layer({{ layer.layer_id }}, name='{{ layer.layer_id }}')

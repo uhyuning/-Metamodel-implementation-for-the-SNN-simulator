@@ -12,11 +12,13 @@ network = Network(dt=100)
 # ----------------- 2. 레이어 생성 -----------------
 
 
+# Python 코드:
 L1_Input = Input(n=784)
 
 network.add_layer(L1_Input, name='L1_Input')
 
 
+# Python 코드:
 L2_LIF = LIF(n=100, v_th=1.0, tau_mem=10.0)
 
 network.add_layer(L2_LIF, name='L2_LIF')

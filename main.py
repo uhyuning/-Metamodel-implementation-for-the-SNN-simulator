@@ -5,8 +5,8 @@ import sys
 # src 디렉토리를 Python 경로에 추가하여 모듈을 임포트할 수 있게 함
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src')) 
 
-from parser import load_and_validate_metamodel
-from codegen import generate_snn_code
+from src.parser import load_and_validate_metamodel
+from src.codegen import generate_snn_code
 
 def main():
     print("--- SNN Metamodel Code Generator Started ---")
@@ -30,4 +30,5 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
     main()
