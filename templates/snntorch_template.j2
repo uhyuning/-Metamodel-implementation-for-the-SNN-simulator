@@ -1,0 +1,120 @@
+snntorch_template.j2
+
+---------------------------------------------------------------------------------------
+
+SNN Metamodel Code Generator - snnTorch Implementation
+
+Model Name: {{ model_name }}
+
+---------------------------------------------------------------------------------------
+
+import torch
+import torch.nn as nn
+from snntorch import spikegen
+from snntorch import functional as SF
+from snntorch import surrogate
+from snntorch import utils
+from snntorch import spikemem
+
+시뮬레이션 설정
+
+TIME_STEPS = {{ time_steps }}
+BETA = 0.5  # Decay rate for LIF neurons
+
+1. 모델 클래스 정의
+
+class SNNModel(nn.Module): # PyTorch nn.Module 상속
+    def init(self):
+    super().init()
+
+    # 1-1. 레이어 정의
+
+
+{% for layer in layers %}
+{% if layer.layer_type == 'Input' %}
+# {{ layer.layer_id }} (Input) - 입력 레이어
+{% elif layer.layer_type == 'Dense' and layer.neuron_type == 'LIF' %}
+# {{ layer.layer_id }} Dense Layer (LIF)
+# nn.Linear: 가중치 연결 (이전 레이어 크기, 현재 레이어 크기)
+# 템플릿 코드의 복잡성을 낮추기 위해, Input 레이어의 shape[0]를 직접 참조
+self.{{ layer.layer_id }} = nn.Linear({{ layer.shape[1] if loop.index > 1 else layers[0].shape[0] }}, {{ layer.shape[0] }})
+# snntorch.Spike.LIF: LIF 뉴런 정의
+self.lif_{{ layer.layer_id }} = spikemem.Leaky(beta=BETA, threshold={{ layer.parameters.v_th }})
+{% endif %}
+{% endfor %}
+
+    # 모든 LIF 뉴런 상태 (막 전위)를 저장할 리스트를 초기화합니다.
+    self.mem_init_list = [None] * {{ layers|selectattr('neuron_type', 'equalto', 'LIF')|list|length }}
+    
+def forward(self, x):
+    # 뉴런 상태 (막 전위) 초기화: 초기 막 전위는 0으로 설정
+    mem = [None] * len(self.mem_init_list) 
+    
+    # 스파이크 및 막 전위 기록을 위한 리스트
+    spk_rec = []
+    mem_rec = []
+
+    # 시간 스텝별 시뮬레이션 루프
+    for step in range(TIME_STEPS):
+        # 1. 입력 (x[step]은 현재 시간 스텝의 데이터)
+        cur = x[step]
+
+        # 2. 레이어 순전파
+        mem_index = 0
+
+
+{% for layer in layers %}
+{% if layer.layer_type == 'Dense' and layer.neuron_type == 'LIF' %}
+# {{ layer.layer_id }} Layer
+cur = self.{{ layer.layer_id }}(cur) # Linear connection
+
+        # LIF 뉴런 순전파 (cur: 입력 전류, mem[mem_index]: 이전 막 전위)
+        spk_{{ layer.layer_id }}, mem_{{ layer.layer_id }} = self.lif_{{ layer.layer_id }}(cur, mem[mem_index]) 
+        
+        mem[mem_index] = mem_{{ layer.layer_id }} # 막 전위 업데이트
+        cur = spk_{{ layer.layer_id }}           # 다음 레이어 입력은 스파이크 출력
+
+        mem_index += 1
+
+
+{% endif %}
+{% endfor %}
+
+        # 3. 결과 기록 (여기서는 최종 Dense LIF 레이어의 스파이크와 막 전위만 기록)
+        # Jinja2에서 객체의 속성에 접근하는 올바른 방법: .last을 먼저 적용하고 속성(attribute)을 가져옴.
+        final_lif_layer_id = "{{ layers|selectattr('neuron_type', 'equalto', 'LIF')|last.layer_id }}"
+        
+        # 템플릿 변수 접근을 위해 동적으로 이름 생성
+        spk_rec.append(eval(f"spk_{final_lif_layer_id}"))
+        mem_rec.append(eval(f"mem_{final_lif_layer_id}"))
+
+
+    return torch.stack(spk_rec), torch.stack(mem_rec)
+
+
+2. 메인 실행 블록
+
+if name == "main":
+print("Running snnTorch simulation...")
+
+# 2-1. 모델 인스턴스 생성
+model = SNNModel()
+
+# 2-2. 더미 입력 데이터 생성 (시간 스텝 x 배치 x 특성 수)
+input_layer = {{ layers|selectattr('layer_type', 'equalto', 'Input')|first }}
+input_size = input_layer.shape[0]
+
+# 더미 데이터: [시간 스텝, 배치 크기=1, 입력 크기]
+dummy_input = torch.rand(TIME_STEPS, 1, input_size) * 0.5 
+
+# 2-3. 스파이크 입력으로 변환 (예시: 률 기반 인코딩)
+spike_input = spikegen.rate(dummy_input, num_steps=TIME_STEPS)
+
+# 2-4. 모델 실행
+try:
+    spk_out, mem_out = model(spike_input)
+    print(f"Simulation finished successfully.")
+    print(f"Output Spike Tensor Shape: {spk_out.shape} (Time Steps, Batch Size, Output Size)")
+    
+except Exception as e:
+    print(f"\n[ERROR] An error occurred during snnTorch simulation: {e}")

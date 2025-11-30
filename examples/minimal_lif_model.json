@@ -1,6 +1,6 @@
 {
   "model_name": "Minimal_LIF_Model",
-  "target_simulator": "BindsNET",
+  "target_simulator": "snnTorch",
   "time_steps": 100,
   "layers": [
     {
