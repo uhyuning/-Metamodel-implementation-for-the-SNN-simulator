@@ -1,0 +1,26 @@
+{
+  "model_name": "BindsNET_LIF_Net",
+  "target_simulator": "BindsNET",
+  "time_steps": 50,
+  "layers": [
+    {
+      "layer_id": "L1_Input",
+      "layer_type": "Input",
+      "shape": [784]
+    },
+    {
+      "layer_id": "L2_LIF",
+      "layer_type": "LIF",
+      "shape": [100],
+      "v_th": 1.0,
+      "tau_m": 10.0
+    }
+  ],
+  "connections": [
+    {
+      "pre_layer": "L1_Input",
+      "post_layer": "L2_LIF",
+      "connection_type": "AllToAll"
+    }
+  ]
+}

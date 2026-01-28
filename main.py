@@ -1,34 +1,74 @@
-# main.py 파일 내용
 import os
 import sys
 
-# src 디렉토리를 Python 경로에 추가하여 모듈을 임포트할 수 있게 함
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src')) 
+# 1. 경로 설정
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
 
-from src.parser import load_and_validate_metamodel
-from src.codegen import generate_snn_code
+try:
+    from src.parser import load_and_validate_metamodel
+    from src.codegen import generate_snn_code
+except ImportError as e:
+    print(f"[ERROR] Import failure: {e}")
+    sys.exit(1)
 
 def main():
-    print("--- SNN Metamodel Code Generator Started ---")
+    print("\n" + "="*40)
+    print("   SNN Metamodel Code Generator")
+    print("="*40)
     
-    # 1. Metamodel JSON 파일 경로 설정 (일단 예시 파일을 사용)
-    # 실제 구현 시에는 커맨드 라인 인수를 통해 경로를 받아야 합니다.
-    base_dir = os.path.dirname(__file__)
-    json_path = os.path.join(base_dir, 'examples', 'minimal_lif_model.json')
+    # 2. examples 폴더 내의 json 파일 목록 가져오기
+    json_dir = os.path.join(BASE_DIR, 'examples')
     
-    # 2. JSON 파일 로드 및 파싱
+    if not os.path.exists(json_dir):
+        print(f"[ERROR] '{json_dir}' 폴더가 존재하지 않습니다.")
+        return
+
+    # .json 확장자만 골라내기
+    json_files = [f for f in os.listdir(json_dir) if f.endswith('.json')]
+
+    if not json_files:
+        print("[INFO] 'examples' 폴더에 사용할 수 있는 JSON 파일이 없습니다.")
+        return
+
+    # 3. 파일 목록 보여주기
+    print("\n사용 가능한 모델 명세 목록:")
+    for idx, filename in enumerate(json_files, 1):
+        print(f" [{idx}] {filename}")
+    
+    # 4. 사용자 입력 받기
     try:
+        choice = input(f"\n생성할 파일 번호를 입력하세요 (1-{len(json_files)}): ").strip()
+        
+        # 입력값이 숫자인지 확인
+        if not choice.isdigit():
+            raise ValueError("숫자만 입력 가능합니다.")
+        
+        selected_idx = int(choice) - 1
+        
+        if 0 <= selected_idx < len(json_files):
+            selected_file = json_files[selected_idx]
+            json_path = os.path.join(json_dir, selected_file)
+        else:
+            raise IndexError("범위를 벗어난 번호입니다.")
+
+    except (ValueError, IndexError) as e:
+        print(f"[ERROR] 잘못된 입력입니다: {e}")
+        return
+
+    # 5. 코드 생성 진행
+    try:
+        print(f"\n[*] '{selected_file}' 파일을 읽어오는 중...")
         model_spec = load_and_validate_metamodel(json_path)
-        
-        # 3. 파싱된 데이터를 사용하여 다음 단계 (코드 생성) 진행
-        # print(f"Target Simulator: {model_spec['target_simulator']}")
-        
         generate_snn_code(model_spec)
+        print("\n" + "-"*40)
+        print("✅ 모든 작업이 완료되었습니다!")
+        print("-"*40)
         
     except Exception as e:
-        print(f"\n[FATAL ERROR] Project execution failed: {e}")
+        print(f"\n[FATAL ERROR]: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
     main()

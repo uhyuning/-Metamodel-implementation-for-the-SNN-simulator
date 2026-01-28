@@ -1,0 +1,35 @@
+import torch
+import torch.nn as nn
+from spikingjelly.activation_based import neuron, layer, surrogate, functional
+
+class {{ model_name }}(nn.Module):
+    def __init__(self):
+        super().__init__()
+        
+        # 메타모델의 layers 정보를 바탕으로 구성
+        self.network = nn.Sequential(
+            {% for layer_item in layers %}
+            {% if layer_item.type == 'Linear' %}
+            layer.Linear({{ layer_item.input_size }}, {{ layer_item.output_size }}),
+            neuron.LIFNode(surrogate_function=surrogate.Sigmoid()),
+            {% endif %}
+            {% endfor %}
+        )
+
+    def forward(self, x):
+        # SpikingJelly의 MultiStep 모드: (T, N, C, H, W) 형태의 입력을 기대함
+        {% if step_mode == 'multi_step' %}
+        functional.reset_net(self.network)
+        out = []
+        for t in range({{ time_steps }}):
+            out.append(self.network(x[t]))
+        return torch.stack(out)
+        {% else %}
+        # Single-step 모드 등의 로직
+        return self.network(x)
+        {% endif %}
+
+# 시뮬레이션 설정
+time_steps = {{ time_steps }}
+model = {{ model_name }}()
+print(f"SpikingJelly 모델 '{{ model_name }}' 생성 완료")

@@ -1,29 +1,12 @@
 {
-  "model_name": "Minimal_LIF_Model",
-  "target_simulator": "snnTorch",
-  "time_steps": 100,
+  "model_name": "MySpikingModel",
+  "target_simulator": "SpikingJelly",
+  "time_steps": 50,
+  "backend": "cupy", 
+  "step_mode": "multi_step",
   "layers": [
-    {
-      "layer_id": "L1_Input",
-      "layer_type": "Input",
-      "shape": [784]
-    },
-    {
-      "layer_id": "L2_LIF",
-      "layer_type": "Dense",
-      "neuron_type": "LIF",
-      "size": 100,
-      "parameters": {
-        "v_th": 1.0,
-        "tau_m": 10.0
-      }
-    }
+    { "type": "Linear", "input_size": 784, "output_size": 128 },
+    { "type": "Linear", "input_size": 128, "output_size": 10 }
   ],
-  "connections": [
-    {
-      "pre_layer": "L1_Input",
-      "post_layer": "L2_LIF",
-      "connection_type": "AllToAll"
-    }
-  ]
+  "connections": []
 }
