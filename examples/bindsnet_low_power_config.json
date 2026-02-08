@@ -1,0 +1,18 @@
+{
+  "model_name": "BindsNetEcoModel",
+  "target_simulator": "BindsNET",
+  "time_steps": 100,
+  "hardware_constraints": {
+    "device_type": "jetson_nano",
+    "power_mode": "low_energy"
+  },
+  "layers": [
+    {"type": "linear", "in_features": 784, "out_features": 256},
+    {"type": "LIFNode", "surrogate_function": "none"},
+    {"type": "linear", "in_features": 256, "out_features": 10},
+    {"type": "LIFNode", "surrogate_function": "none"}
+  ],
+  "connections": [],
+  "backend": "torch",
+  "step_mode": "multi_step"
+}

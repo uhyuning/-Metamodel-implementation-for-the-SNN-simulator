@@ -1,0 +1,17 @@
+{
+  "model_name": "EcoFriendlyModel",
+  "target_simulator": "SpikingJelly",
+  "time_steps": 50,
+  "hardware_constraints": {
+    "power_mode": "low_energy"
+  },
+  "layers": [
+    {"type": "linear", "in_features": 784, "out_features": 128},
+    {"type": "LIFNode", "surrogate_function": "Sigmoid"},
+    {"type": "linear", "in_features": 128, "out_features": 10},
+    {"type": "LIFNode", "surrogate_function": "Sigmoid"}
+  ],
+  "connections": [],
+  "backend": "torch",
+  "step_mode": "multi_step"
+}
