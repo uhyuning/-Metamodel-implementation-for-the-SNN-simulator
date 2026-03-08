@@ -1,17 +1,39 @@
 {
-  "model_name": "EcoFriendlyModel",
+  "model_name": "SpikingJellyLowPowerModel",
   "target_simulator": "SpikingJelly",
-  "time_steps": 50,
+  "time_steps": 40,
+  "power_mode": "low_energy",
   "hardware_constraints": {
-    "power_mode": "low_energy"
+    "device_type": "edge_neuromorphic_processor"
   },
   "layers": [
-    {"type": "linear", "in_features": 784, "out_features": 128},
-    {"type": "LIFNode", "surrogate_function": "Sigmoid"},
-    {"type": "linear", "in_features": 128, "out_features": 10},
-    {"type": "LIFNode", "surrogate_function": "Sigmoid"}
+    {
+      "type": "linear",
+      "in_features": 784,
+      "out_features": 128
+    },
+    {
+      "type": "IFNode",
+      "v_threshold": 1.0,
+      "v_reset": 0.0,
+      "surrogate_function": "Sigmoid",
+      "note": "Energy-efficient Integrate-and-Fire without Leakage"
+    },
+    {
+      "type": "linear",
+      "in_features": 128,
+      "out_features": 10
+    },
+    {
+      "type": "IFNode",
+      "v_threshold": 1.0,
+      "surrogate_function": "Sigmoid"
+    }
   ],
-  "connections": [],
+  "connections": [
+    { "source": "input", "target": "layer_1" },
+    { "source": "layer_1", "target": "layer_2" }
+  ],
   "backend": "torch",
-  "step_mode": "multi_step"
+  "step_mode": "m"
 }

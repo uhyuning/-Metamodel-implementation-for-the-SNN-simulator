@@ -2,17 +2,43 @@
   "model_name": "BindsNetStandardModel",
   "target_simulator": "BindsNET",
   "time_steps": 100,
+  "power_mode": "normal",
   "hardware_constraints": {
-    "device_type": "high_performance_gpu",
-    "power_mode": "normal"
+    "device_type": "high_performance_gpu"
   },
   "layers": [
-    {"type": "linear", "in_features": 784, "out_features": 256},
-    {"type": "LIFNode", "surrogate_function": "none"},
-    {"type": "linear", "in_features": 256, "out_features": 10},
-    {"type": "LIFNode", "surrogate_function": "none"}
+    {
+      "type": "input",
+      "in_features": 784,
+      "out_features": 784
+    },
+    {
+      "type": "LIFNode",
+      "in_features": 784,
+      "out_features": 256,
+      "thresh": -52.0,
+      "rest": -65.0
+    },
+    {
+      "type": "LIFNode",
+      "in_features": 256,
+      "out_features": 10,
+      "thresh": -52.0,
+      "rest": -65.0
+    }
   ],
-  "connections": [],
+  "connections": [
+    {
+      "source": "input_layer",
+      "target": "layer_1",
+      "weight_init": "normal"
+    },
+    {
+      "source": "layer_1",
+      "target": "layer_2",
+      "weight_init": "normal"
+    }
+  ],
   "backend": "torch",
   "step_mode": "multi_step"
 }

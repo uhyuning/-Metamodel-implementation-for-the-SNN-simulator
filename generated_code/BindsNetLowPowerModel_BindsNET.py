@@ -9,12 +9,12 @@ from bindsnet.network.monitors import Monitor
 ======================================================================
 SNN Meta-Model Framework (BindsNET Expert Ver. 2.0)
 [Hardware-Aware Configuration]
-- Mode: normal | Target: high_performance_gpu
+- Mode: normal | Target: edge_neuromorphic_chip
 - Precision: FP32 (Full)
 ======================================================================
 """
 
-def create_BindsNetStandardModel(dt=1.0, is_learning=True):
+def create_BindsNetLowPowerModel(dt=1.0, is_learning=True):
     network = Network(dt=dt)
     power_mode = "normal"
     
@@ -35,7 +35,7 @@ def create_BindsNetStandardModel(dt=1.0, is_learning=True):
     
     # Standard: 시간적 해상도가 높은 LIF 모델 (Biological Fidelity)
     curr_layer = LIFNodes(
-        n=256, 
+        n=128, 
         sum_input=True, 
         thresh=-52.0, 
         rest=-65.0,
@@ -57,7 +57,7 @@ def create_BindsNetStandardModel(dt=1.0, is_learning=True):
     
     # 4. [Innovation] 연구용 스파이크 분석 모니터 추가
     network.add_monitor(
-        Monitor(network.layers[curr_name], state_vars=("s", "v"), time=100),
+        Monitor(network.layers[curr_name], state_vars=("s", "v"), time=50),
         name=f"{curr_name}_monitor"
     )
 
@@ -93,7 +93,7 @@ def create_BindsNetStandardModel(dt=1.0, is_learning=True):
     
     # 4. [Innovation] 연구용 스파이크 분석 모니터 추가
     network.add_monitor(
-        Monitor(network.layers[curr_name], state_vars=("s", "v"), time=100),
+        Monitor(network.layers[curr_name], state_vars=("s", "v"), time=50),
         name=f"{curr_name}_monitor"
     )
 
@@ -105,22 +105,22 @@ def create_BindsNetStandardModel(dt=1.0, is_learning=True):
 
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = create_BindsNetStandardModel(is_learning=True)
+    model = create_BindsNetLowPowerModel(is_learning=True)
     model.to(device)
 
     # 5. [Optimization] 저전력 가동을 위한 FP16 양자화 전략
     
 
     # 시뮬레이션 데이터 준비 (Time, Batch, Features)
-    data = torch.randn(100, 1, 784).to(device)
+    data = torch.randn(50, 1, 784).to(device)
     
 
     # 시뮬레이션 실행 (Research Execution)
-    model.run(inputs={"input_layer": data}, time=100)
+    model.run(inputs={"input_layer": data}, time=50)
 
     # 결과 요약 출력
     print(f"\n==================================================")
-    print(f"BindsNET Experiment Summary: 'BindsNetStandardModel'")
+    print(f"BindsNET Experiment Summary: 'BindsNetLowPowerModel'")
     print(f" - Active Mode: normal")
     print(f" - Computed Layers: {list(model.layers.keys())}")
     print(f" - Last Layer Spikes: {torch.sum(model.monitors[f'{prev_name}_monitor'].get('s')).item()}")

@@ -1,18 +1,42 @@
 {
-  "model_name": "BindsNetEcoModel",
+  "model_name": "BindsNetLowPowerModel",
   "target_simulator": "BindsNET",
-  "time_steps": 100,
+  "time_steps": 50,
+  "power_mode": "low_energy",
   "hardware_constraints": {
-    "device_type": "jetson_nano",
-    "power_mode": "low_energy"
+    "device_type": "edge_neuromorphic_chip"
   },
   "layers": [
-    {"type": "linear", "in_features": 784, "out_features": 256},
-    {"type": "LIFNode", "surrogate_function": "none"},
-    {"type": "linear", "in_features": 256, "out_features": 10},
-    {"type": "LIFNode", "surrogate_function": "none"}
+    {
+      "type": "input",
+      "in_features": 784,
+      "out_features": 784
+    },
+    {
+      "type": "IFNode",
+      "in_features": 784,
+      "out_features": 128,
+      "note": "IFNode 사용으로 Leakage 연산 제거"
+    },
+    {
+      "type": "IFNode",
+      "in_features": 128,
+      "out_features": 10,
+      "note": "경량화를 위한 뉴런 수 감소"
+    }
   ],
-  "connections": [],
+  "connections": [
+    {
+      "source": "input_layer",
+      "target": "layer_1",
+      "weight_init": "uniform"
+    },
+    {
+      "source": "layer_1",
+      "target": "layer_2",
+      "weight_init": "uniform"
+    }
+  ],
   "backend": "torch",
   "step_mode": "multi_step"
 }

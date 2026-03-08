@@ -1,17 +1,41 @@
 {
-  "model_name": "StandardModel",
+  "model_name": "SpikingJellyStandardModel",
   "target_simulator": "SpikingJelly",
-  "time_steps": 50,
+  "time_steps": 100,
+  "power_mode": "normal",
   "hardware_constraints": {
-    "power_mode": "normal"
+    "device_type": "high_performance_gpu"
   },
   "layers": [
-    {"type": "linear", "in_features": 784, "out_features": 128},
-    {"type": "LIFNode", "surrogate_function": "Sigmoid"},
-    {"type": "linear", "in_features": 128, "out_features": 10},
-    {"type": "LIFNode", "surrogate_function": "Sigmoid"}
+    {
+      "type": "linear",
+      "in_features": 784,
+      "out_features": 256
+    },
+    {
+      "type": "LIFNode",
+      "tau": 2.0,
+      "v_threshold": 1.0,
+      "v_reset": 0.0,
+      "surrogate_function": "ATan",
+      "note": "Standard Leaky Integrate-and-Fire with ATan"
+    },
+    {
+      "type": "linear",
+      "in_features": 256,
+      "out_features": 10
+    },
+    {
+      "type": "LIFNode",
+      "tau": 2.0,
+      "v_threshold": 1.0,
+      "surrogate_function": "ATan"
+    }
   ],
-  "connections": [],
+  "connections": [
+    { "source": "input", "target": "layer_1" },
+    { "source": "layer_1", "target": "layer_2" }
+  ],
   "backend": "torch",
-  "step_mode": "multi_step"
+  "step_mode": "m"
 }

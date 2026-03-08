@@ -1,15 +1,38 @@
 {
-  "model_name": "SnnTorchEco",
+  "model_name": "SnnTorchLowPowerModel",
   "target_simulator": "snnTorch",
   "time_steps": 25,
-  "hardware_constraints": { "power_mode": "low_energy" },
+  "power_mode": "low_energy",
+  "hardware_constraints": {
+    "device_type": "edge_ai_processor"
+  },
   "layers": [
-    {"type": "linear", "in_features": 784, "out_features": 128},
-    {"type": "LIFNode", "surrogate_function": "fast_sigmoid"},
-    {"type": "linear", "in_features": 128, "out_features": 10},
-    {"type": "LIFNode", "surrogate_function": "fast_sigmoid"}
+    {
+      "type": "linear",
+      "in_features": 784,
+      "out_features": 128
+    },
+    {
+      "type": "LIFNode",
+      "surrogate_function": "fast_sigmoid",
+      "beta": 0.5,
+      "note": "Low power with Fast Sigmoid surrogate"
+    },
+    {
+      "type": "linear",
+      "in_features": 128,
+      "out_features": 10
+    },
+    {
+      "type": "LIFNode",
+      "surrogate_function": "fast_sigmoid",
+      "beta": 0.5
+    }
   ],
-  "connections": [],
+  "connections": [
+    { "source": "input", "target": "layer_1" },
+    { "source": "layer_1", "target": "layer_2" }
+  ],
   "backend": "torch",
   "step_mode": "multi_step"
 }

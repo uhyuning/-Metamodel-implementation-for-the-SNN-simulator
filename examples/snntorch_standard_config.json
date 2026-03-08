@@ -1,15 +1,38 @@
 {
-  "model_name": "SnnTorchStandard",
+  "model_name": "SnnTorchStandardModel",
   "target_simulator": "snnTorch",
-  "time_steps": 25,
-  "hardware_constraints": { "power_mode": "normal" },
+  "time_steps": 100,
+  "power_mode": "normal",
+  "hardware_constraints": {
+    "device_type": "high_performance_gpu"
+  },
   "layers": [
-    {"type": "linear", "in_features": 784, "out_features": 128},
-    {"type": "LIFNode", "surrogate_function": "fast_sigmoid"},
-    {"type": "linear", "in_features": 128, "out_features": 10},
-    {"type": "LIFNode", "surrogate_function": "fast_sigmoid"}
+    {
+      "type": "linear",
+      "in_features": 784,
+      "out_features": 256
+    },
+    {
+      "type": "LIFNode",
+      "surrogate_function": "atan",
+      "beta": 0.95,
+      "note": "High precision with ArcTan surrogate"
+    },
+    {
+      "type": "linear",
+      "in_features": 256,
+      "out_features": 10
+    },
+    {
+      "type": "LIFNode",
+      "surrogate_function": "atan",
+      "beta": 0.95
+    }
   ],
-  "connections": [],
+  "connections": [
+    { "source": "input", "target": "layer_1" },
+    { "source": "layer_1", "target": "layer_2" }
+  ],
   "backend": "torch",
   "step_mode": "multi_step"
 }
