@@ -34,12 +34,13 @@ def create_BindsNetStandardModel(dt=1.0, is_learning=True):
     # 2. [Hardware-Aware] 전력 모드에 따른 뉴런 모델 최적화 선택
     
     # Standard: 시간적 해상도가 높은 LIF 모델 (Biological Fidelity)
+    # thresh/rest/tc_decay는 표준 LIF 다이내믹스(src/lif_dynamics.py)에서 파생됨 (decay=0.9048374180359595)
     curr_layer = LIFNodes(
-        n=256, 
-        sum_input=True, 
-        thresh=-52.0, 
-        rest=-65.0,
-        tc_decay=10.0 # Standard 모드 특화 시상수 적용
+        n=256,
+        sum_input=True,
+        thresh=1.0,
+        rest=0.0,
+        tc_decay=10.0
     )
     
     
@@ -70,12 +71,13 @@ def create_BindsNetStandardModel(dt=1.0, is_learning=True):
     # 2. [Hardware-Aware] 전력 모드에 따른 뉴런 모델 최적화 선택
     
     # Standard: 시간적 해상도가 높은 LIF 모델 (Biological Fidelity)
+    # thresh/rest/tc_decay는 표준 LIF 다이내믹스(src/lif_dynamics.py)에서 파생됨 (decay=0.9048374180359595)
     curr_layer = LIFNodes(
-        n=10, 
-        sum_input=True, 
-        thresh=-52.0, 
-        rest=-65.0,
-        tc_decay=10.0 # Standard 모드 특화 시상수 적용
+        n=10,
+        sum_input=True,
+        thresh=1.0,
+        rest=0.0,
+        tc_decay=10.0
     )
     
     

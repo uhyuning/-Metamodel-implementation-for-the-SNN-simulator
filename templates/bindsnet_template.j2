@@ -37,12 +37,13 @@ def create_{{ model_name }}(dt=1.0, is_learning=True):
     curr_layer = IFNodes(n={{ l.out_features }}, sum_input=True)
     {% else %}
     # Standard: 시간적 해상도가 높은 LIF 모델 (Biological Fidelity)
+    # thresh/rest/tc_decay는 표준 LIF 다이내믹스(src/lif_dynamics.py)에서 파생됨 (decay={{ l.decay }})
     curr_layer = LIFNodes(
-        n={{ l.out_features }}, 
-        sum_input=True, 
-        thresh={{ l.get('thresh', -52.0) }}, 
-        rest={{ l.get('rest', -65.0) }},
-        tc_decay=10.0 # Standard 모드 특화 시상수 적용
+        n={{ l.out_features }},
+        sum_input=True,
+        thresh={{ l.v_threshold }},
+        rest={{ l.v_reset }},
+        tc_decay={{ l.tau_mem }}
     )
     {% endif %}
     

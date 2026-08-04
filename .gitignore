@@ -1,3 +1,7 @@
+# Markdown 문서: README만 GitHub에 올리고 나머지(초안, 보고서 등)는 로컬에만 보관
+*.md
+!README.md
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -205,3 +209,15 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# C++/SIMD 백엔드 빌드 산출물
+generated_code/*.exe
+generated_code/*.obj
+generated_code/*.pdb
+generated_code/*.ilk
+
+# 벤치마크 실행 시 임시로 생성되는 코드 (스크립트로 언제든 재생성 가능)
+benchmarks/_generated/
+
+# 프로젝트 전용 벤치마크 venv (torch/snntorch/spikingjelly, 로컬에서 재생성)
+.venv_bench/

@@ -1,0 +1,10 @@
+# Python 쪽 벤치마크 전용 의존성 (scripts/run_benchmark.py).
+# .venv_39는 다른 CV 작업(opencv, torchvision+cu111)과 공유되는 환경이라 손대지 않고,
+# 이 프로젝트 전용 venv를 새로 만들어 설치한다:
+#   py -3.9 -m venv .venv_bench
+#   .venv_bench\Scripts\python.exe -m pip install --index-url https://download.pytorch.org/whl/cpu torch
+#   .venv_bench\Scripts\python.exe -m pip install -r requirements-bench.txt
+snntorch
+spikingjelly
+tensorboard
+pytest

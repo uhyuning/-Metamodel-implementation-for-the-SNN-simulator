@@ -9,14 +9,14 @@ from bindsnet.network.monitors import Monitor
 ======================================================================
 SNN Meta-Model Framework (BindsNET Expert Ver. 2.0)
 [Hardware-Aware Configuration]
-- Mode: normal | Target: edge_neuromorphic_chip
-- Precision: FP32 (Full)
+- Mode: low_energy | Target: edge_neuromorphic_chip
+- Precision: FP16 (Half)
 ======================================================================
 """
 
 def create_BindsNetLowPowerModel(dt=1.0, is_learning=True):
     network = Network(dt=dt)
-    power_mode = "normal"
+    power_mode = "low_energy"
     
     # [Innovation] 학습 상태에 따른 가중치 업데이트 규칙 동적 할당
     learning_rule = PostPre if is_learning else NoOp
@@ -33,14 +33,8 @@ def create_BindsNetLowPowerModel(dt=1.0, is_learning=True):
     
     # 2. [Hardware-Aware] 전력 모드에 따른 뉴런 모델 최적화 선택
     
-    # Standard: 시간적 해상도가 높은 LIF 모델 (Biological Fidelity)
-    curr_layer = LIFNodes(
-        n=128, 
-        sum_input=True, 
-        thresh=-52.0, 
-        rest=-65.0,
-        tc_decay=10.0 # Standard 모드 특화 시상수 적용
-    )
+    # Low-Energy: 정수 기반 연산에 유리한 IF 모델 (No Leakage)
+    curr_layer = IFNodes(n=128, sum_input=True)
     
     
     network.add_layer(curr_layer, name=curr_name)
@@ -69,14 +63,8 @@ def create_BindsNetLowPowerModel(dt=1.0, is_learning=True):
     
     # 2. [Hardware-Aware] 전력 모드에 따른 뉴런 모델 최적화 선택
     
-    # Standard: 시간적 해상도가 높은 LIF 모델 (Biological Fidelity)
-    curr_layer = LIFNodes(
-        n=10, 
-        sum_input=True, 
-        thresh=-52.0, 
-        rest=-65.0,
-        tc_decay=10.0 # Standard 모드 특화 시상수 적용
-    )
+    # Low-Energy: 정수 기반 연산에 유리한 IF 모델 (No Leakage)
+    curr_layer = IFNodes(n=10, sum_input=True)
     
     
     network.add_layer(curr_layer, name=curr_name)
@@ -110,10 +98,17 @@ if __name__ == "__main__":
 
     # 5. [Optimization] 저전력 가동을 위한 FP16 양자화 전략
     
+    # BindsNET 텐서 내부 최적화 (Memory-Efficient Inference)
+    for p in model.parameters():
+        p.data = p.data.half()
+    for layer in model.layers.values():
+        if hasattr(layer, 'v'): layer.v = layer.v.half()
+    print(">>> [System] FP16 Quantization Applied for Energy Efficiency.")
+    
 
     # 시뮬레이션 데이터 준비 (Time, Batch, Features)
     data = torch.randn(50, 1, 784).to(device)
-    
+    data = data.half()
 
     # 시뮬레이션 실행 (Research Execution)
     model.run(inputs={"input_layer": data}, time=50)
@@ -121,7 +116,7 @@ if __name__ == "__main__":
     # 결과 요약 출력
     print(f"\n==================================================")
     print(f"BindsNET Experiment Summary: 'BindsNetLowPowerModel'")
-    print(f" - Active Mode: normal")
+    print(f" - Active Mode: low_energy")
     print(f" - Computed Layers: {list(model.layers.keys())}")
     print(f" - Last Layer Spikes: {torch.sum(model.monitors[f'{prev_name}_monitor'].get('s')).item()}")
     print(f"==================================================")

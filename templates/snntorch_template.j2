@@ -30,11 +30,16 @@ class {{ model_name }}(nn.Module):
     {% elif l.type == 'LIFNode' %}
         {% if power_mode == 'low_energy' %}
         # [Hardware-Aware] Lapicque 모델은 RC 회로 기반으로 연산량이 적어 저전력 환경에 최적화됨
-        self.layers.append(snn.Lapicque(beta=1.0, spike_grad=surrogate.{{ l.surrogate_function }}(), init_hidden=True, output=True))
+        # decay/threshold/reset_mechanism은 표준 LIF 다이내믹스(src/lif_dynamics.py)에서 파생됨 (tau_mem={{ l.tau_mem }})
+        self.layers.append(snn.Lapicque(beta={{ l.decay }}, threshold={{ l.v_threshold }}, reset_mechanism="{{ l.reset_mechanism }}", spike_grad=surrogate.{{ l.surrogate_function }}(), init_hidden=True, output=True))
         {% else %}
         # [Standard Mode] 복잡한 시계열 학습에 유리한 Leaky 모델 채택
-        self.layers.append(snn.Leaky(beta=0.9, spike_grad=surrogate.{{ l.surrogate_function }}(), init_hidden=True, output=True))
+        # decay/threshold/reset_mechanism은 표준 LIF 다이내믹스(src/lif_dynamics.py)에서 파생됨 (tau_mem={{ l.tau_mem }})
+        self.layers.append(snn.Leaky(beta={{ l.decay }}, threshold={{ l.v_threshold }}, reset_mechanism="{{ l.reset_mechanism }}", spike_grad=surrogate.{{ l.surrogate_function }}(), init_hidden=True, output=True))
         {% endif %}
+    {% elif l.type == 'IFNode' %}
+        # [Hardware-Aware] LIFNode에서 교체됨: 누설 없는 순수 Integrate-and-Fire (decay=1.0)를 Lapicque로 근사
+        self.layers.append(snn.Lapicque(beta={{ l.decay }}, threshold={{ l.v_threshold }}, reset_mechanism="{{ l.reset_mechanism }}", spike_grad=surrogate.{{ l.surrogate_function }}(), init_hidden=True, output=True))
     {% endif %}
 {% endfor %}
 

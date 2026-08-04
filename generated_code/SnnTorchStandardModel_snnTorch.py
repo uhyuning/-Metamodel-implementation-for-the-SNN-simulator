@@ -32,7 +32,8 @@ class SnnTorchStandardModel(nn.Module):
     
         
         # [Standard Mode] 복잡한 시계열 학습에 유리한 Leaky 모델 채택
-        self.layers.append(snn.Leaky(beta=0.9, spike_grad=surrogate.atan(), init_hidden=True, output=True))
+        # decay/threshold/reset_mechanism은 표준 LIF 다이내믹스(src/lif_dynamics.py)에서 파생됨 (tau_mem=19.495725746223673)
+        self.layers.append(snn.Leaky(beta=0.95, threshold=1.0, reset_mechanism="subtract", spike_grad=surrogate.atan(), init_hidden=True, output=True))
         
     
 
@@ -43,7 +44,8 @@ class SnnTorchStandardModel(nn.Module):
     
         
         # [Standard Mode] 복잡한 시계열 학습에 유리한 Leaky 모델 채택
-        self.layers.append(snn.Leaky(beta=0.9, spike_grad=surrogate.atan(), init_hidden=True, output=True))
+        # decay/threshold/reset_mechanism은 표준 LIF 다이내믹스(src/lif_dynamics.py)에서 파생됨 (tau_mem=19.495725746223673)
+        self.layers.append(snn.Leaky(beta=0.95, threshold=1.0, reset_mechanism="subtract", spike_grad=surrogate.atan(), init_hidden=True, output=True))
         
     
 

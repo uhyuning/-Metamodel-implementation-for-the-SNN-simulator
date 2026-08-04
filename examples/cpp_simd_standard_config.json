@@ -1,0 +1,39 @@
+{
+  "model_name": "CppSimdStandardModel",
+  "target_simulator": "CppSIMD",
+  "time_steps": 100,
+  "power_mode": "normal",
+  "hardware_constraints": {
+    "device_type": "high_performance_cpu"
+  },
+  "layers": [
+    {
+      "type": "linear",
+      "in_features": 784,
+      "out_features": 128
+    },
+    {
+      "type": "LIFNode",
+      "tau_mem": 10.0,
+      "v_threshold": 1.0,
+      "v_reset": 0.0
+    },
+    {
+      "type": "linear",
+      "in_features": 128,
+      "out_features": 10
+    },
+    {
+      "type": "LIFNode",
+      "tau_mem": 10.0,
+      "v_threshold": 1.0,
+      "v_reset": 0.0
+    }
+  ],
+  "connections": [
+    { "source": "input", "target": "layer_1" },
+    { "source": "layer_1", "target": "layer_2" }
+  ],
+  "backend": "cpp",
+  "step_mode": "multi_step"
+}

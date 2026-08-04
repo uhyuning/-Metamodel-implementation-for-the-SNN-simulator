@@ -1,0 +1,40 @@
+{
+  "model_name": "CppSimdLowPowerModel",
+  "target_simulator": "CppSIMD",
+  "time_steps": 25,
+  "power_mode": "low_energy",
+  "hardware_constraints": {
+    "device_type": "edge_mcu_simd"
+  },
+  "layers": [
+    {
+      "type": "linear",
+      "in_features": 784,
+      "out_features": 128
+    },
+    {
+      "type": "LIFNode",
+      "tau_mem": 10.0,
+      "v_threshold": 1.0,
+      "v_reset": 0.0,
+      "note": "low_energy 모드에서 codegen이 IFNode로 자동 교체함"
+    },
+    {
+      "type": "linear",
+      "in_features": 128,
+      "out_features": 10
+    },
+    {
+      "type": "LIFNode",
+      "tau_mem": 10.0,
+      "v_threshold": 1.0,
+      "v_reset": 0.0
+    }
+  ],
+  "connections": [
+    { "source": "input", "target": "layer_1" },
+    { "source": "layer_1", "target": "layer_2" }
+  ],
+  "backend": "cpp",
+  "step_mode": "multi_step"
+}
