@@ -1,25 +1,146 @@
-# 🚀 SNN Meta-Model 기반 자동 코드 생성기 (Hardware-aware)
+# SNN Meta-Model: 파편화된 프레임워크에서 C++/SIMD 네이티브 커널까지
 
-본 프로젝트는 SNN(Spiking Neural Network) 연구의 파편화된 프레임워크 환경을 통합하고, 하드웨어 제약 조건에 최적화된 시뮬레이션 코드를 자동으로 생성하는 프레임워크입니다.
+SNN(Spiking Neural Network) 연구 생태계는 snnTorch, SpikingJelly, BindsNET 등으로 파편화되어 있고, 각 프레임워크는 서로 다른 API와 뉴런 파라미터 표기를 가진다. 이 프로젝트는 **하나의 JSON 메타모델**에서 LIF 뉴런 다이내믹스를 표준화하고, 그 메타모델이 4개의 서로 다른 실행 백엔드(snnTorch / SpikingJelly / BindsNET / **C++·SIMD**)로 코드를 생성하도록 만든다. C++/SIMD 백엔드는 실제로 컴파일·실행되며, 동일 아키텍처 기준 Python 시뮬레이터 대비 지연시간을 실측으로 크게 줄인다.
 
----
+## 한눈에 보는 결과
 
-## ✨ 핵심 기술 (Core Technologies)
+동일 모델(784 → 128 → 10, LIF, `tau_mem=10.0` · `v_threshold=1.0` · `v_reset=0.0`, batch=1, 단일 스레드, 워밍업 5회 + 30회 반복 측정 median 기준):
 
-### 1. 🏗️ 메타모델 설계 및 추상화 인터페이스
-SNN 모델 설계의 파편화를 해결하기 위해, 시뮬레이터에 독립적인 **중립적 메타모델(Neutral Metamodel)** 구조를 제안합니다.
-* **Intermediate Representation**: `parser.py`를 통해 사용자의 모델 정의를 기계가 해석 가능한 중간 표현으로 변환합니다.
-* **Pre-verification**: 레이어 간 피처 일치성 및 타임스텝 유효성을 사후 검증하여, 코드 생성 후 발생할 수 있는 런타임 에러를 설계 단계에서 최소화합니다.
-* **Efficiency**: 반복적인 디버깅 시간을 단축시켜 연구 효율성을 극대화하는 기저 기술로 작동합니다.
+| 백엔드 | 지연시간 | vs C++/SIMD |
+|---|---|---|
+| snnTorch (Python, CPU) | 12.22 ~ 12.37 ms | — |
+| SpikingJelly (Python, CPU) | 3.84 ~ 3.86 ms | — |
+| **C++/SIMD (MSVC `/O2 /arch:AVX2`)** | **0.382 ~ 0.385 ms** | **96.8%↓ vs snnTorch · 90.0%↓ vs SpikingJelly** |
 
-### 2. ⚡ 하드웨어 제약 기반의 동적 모델 최적화
-정적인 코드 변환을 넘어, 실행 환경의 자원 제약 조건에 대응하는 **적응형 최적화(Adaptive Optimization)** 로직을 내장하고 있습니다.
-* **Low-Energy Mode**: 저전력 모드 활성화 시, LIF(Leaky Integrate-and-Fire) 노드를 연산 효율이 높은 IF(Integrate-and-Fire) 노드로 실시간 교체(Swapping)합니다.
-* **Precision Tuning**: FP16 반정밀도(Half-precision) 캐스팅 코드를 자동 삽입하여 메모리 대역폭 점유율을 낮춥니다.
-* **Hardware-aware**: 엣지 디바이스와 같은 극한 환경에서의 SNN 배포 및 연구 가능성을 시사합니다.
+- MSVC 컴파일러 진단(`/Qvec-report:1`)으로 SIMD 벡터화가 실제로 일어났음을 확인 (`info C5001: 루프가 벡터화되었습니다`)
+- 정적/실행 테스트 21개 전부 통과 (`pytest tests/`)
+- 측정 방법과 한계는 [벤치마크 방법론](#벤치마크-방법론과-한계) 참고 — 한 대의 개발 머신에서 측정한 값이며, 실제 MCU/임베디드 보드 실측은 아직 범위 밖
 
-### 3. 🧩 Jinja2 기반의 확장형 템플릿 매핑 엔진
-유지보수와 확장성을 고려하여 로직과 문법이 분리된 **디커플링(Decoupling)** 구조를 채택하였습니다.
-* **Template-driven**: Jinja2 엔진을 활용하여 메인 로직의 수정 없이 템플릿 프로파일(`.j2`) 추가만으로 새로운 프레임워크(SpikingJelly, snnTorch, BindsNET 등)에 즉각 대응할 수 있습니다.
-* **Auto-Mapping**: 네트워크 토폴로지 정의 방식을 각 프레임워크의 고유 API 규격으로 자동 사상(Mapping)합니다.
-* **Cross-validation**: 단일 메타모델만으로 서로 다른 시뮬레이터 환경에서의 교차 검증을 손쉽게 수행할 수 있습니다.
+## 왜 필요한가
+
+- **파편화**: 동일한 SNN 모델을 snnTorch/SpikingJelly/BindsNET마다 매번 다시 구현해야 하고, 재현성이 떨어진다.
+- **배포 공백**: 초저전력 온디바이스 배포 수요는 느는데, 연구용 Python 시뮬레이터에서 실배포 가능한 저지연 네이티브 커널로 이어지는 경로가 없다.
+- **수작업 최적화**: 엣지 배포 시 필요한 LIF→IF 뉴런 단순화 같은 최적화를 연구자가 매번 손으로 처리한다.
+
+## 아키텍처
+
+```
+JSON 메타모델
+    │
+    ▼
+[src/parser.py] load_and_validate_metamodel()
+    - 필수 키 검증
+    - LIFNode/IFNode 레이어에 표준 LIF 다이내믹스(tau_mem, decay, v_threshold, v_reset, reset_mechanism) 적용
+    │
+    ▼
+[src/codegen.py] generate_snn_code()
+    - power_mode == "low_energy"면 LIFNode → IFNode 자동 교체 + decay 재계산
+    - surrogate_function / step_mode를 캐노니컬 값 → 백엔드별 토큰으로 변환
+    - CppSIMD 타깃이면 레이어를 버퍼 단위 연산 목록으로 변환
+    │
+    ▼
+[Jinja2] 4개 템플릿 중 하나 렌더링
+    ├─ snntorch_template.j2      → snn.Leaky / snn.Lapicque
+    ├─ spikingjelly_template.j2  → neuron.LIFNode / neuron.IFNode
+    ├─ bindsnet_template.j2      → LIFNodes / IFNodes
+    └─ cpp_simd_template.j2      → __restrict 포인터 + branch-free C++ 커널
+    │
+    ▼
+실행 가능한 코드 (.py × 3, .cpp × 1)
+    │
+    ▼ (C++만 해당)
+scripts/build_cpp.py → MSVC(vcvars64) 컴파일 → 실행 → 지연시간 출력
+```
+
+같은 입력에서 4개의 산출물이 나오되, 물리적으로 의미 있는 값(뉴런의 누설 계수·임계값·리셋 방식)은 전부 `src/lif_dynamics.py`라는 단일 지점에서 계산된다.
+
+## 핵심 기술
+
+### 1. LIF 다이내믹스 표준화
+
+LIF 뉴런의 막전위는 `tau_mem · dV/dt = -(V - V_reset) + I(t)`를 따르며, 오일러 이산화하면 `decay = exp(-dt / tau_mem)`이 된다. `src/lif_dynamics.py`의 `compute_decay()` 한 곳에서 이 값을 계산하고, 세 프레임워크(snnTorch의 `beta`, SpikingJelly의 `tau`, BindsNET의 `tc_decay`)가 전부 여기서 파생된다. `tests/test_codegen.py::test_lif_dynamics_are_identical_across_backends`가 동일한 `tau_mem`을 넣으면 세 백엔드에서 정확히 같은 수치가 나오는지 검증한다.
+
+### 2. 하드웨어 인식 최적화 (Low-Energy 모드)
+
+`power_mode: "low_energy"`가 감지되면 `codegen.py`가 `LIFNode`(누설 있음)를 `IFNode`(누설 없음, decay=1.0)로 자동 치환한다. IF는 지수 감쇠 연산이 없는 단순 임계값 비교라 연산량이 적다.
+
+### 3. C++/SIMD 네이티브 백엔드
+
+AVX2 인트린식을 직접 쓰는 대신 `__restrict` 포인터 + 분기 없는(branch-free) 뉴런 리셋 수식으로 작성해 컴파일러가 스스로 SIMD로 벡터화하도록 유도했다 (GCC/Clang/MSVC 이식성 확보). `src/codegen.py`의 `_build_cpp_ops()`가 레이어 시퀀스를 버퍼 이름·크기가 명시된 연산 목록으로 코드 생성 시점에 미리 계산해, C++에는 없는 "텐서 shape 추론"을 대신한다.
+
+## 벤치마크 방법론과 한계
+
+**통제한 변수**: 동일 아키텍처(784→128→10) · 동일 LIF 다이내믹스 · 동일 배치(1, 온디바이스 스트리밍 추론을 가정) · `torch.set_num_threads(1)`(PyTorch 멀티스레드 BLAS가 단일 스레드 C++ 대비 부당하게 유리해지지 않도록) · 워밍업 5회 + 30회 반복.
+
+**한계**:
+- 한 대의 개발 머신(x86-64, AVX2)에서 측정한 값 — 여러 하드웨어에 걸친 통계적 검증은 아직 아님
+- 학습되지 않은 랜덤 가중치로 순전파만 수행 — 정확도가 아니라 연산 구조의 지연시간만 비교
+- BindsNET은 아직 이 비교에 포함되지 않음
+- 실제 MCU/임베디드 보드 실측이 아니라 개발 PC의 CPU 기준
+
+## 사용법
+
+### 코드 생성
+
+```bash
+pip install -r requirements.txt
+python main.py   # examples/ 폴더의 JSON 메타모델 중 하나를 선택해 코드 생성
+```
+
+### 테스트 (정적 검증 + C++ 컴파일·실행 검증)
+
+```bash
+pip install pytest
+pytest tests/ -v
+```
+
+MSVC(`vcvars64.bat`)가 설치돼 있으면 `tests/test_cpp_backend.py`가 C++ 코드를 실제로 컴파일·실행까지 검증하고, 없는 환경에서는 해당 테스트만 자동으로 skip된다.
+
+### C++/SIMD 커널 직접 빌드
+
+```bash
+python scripts/build_cpp.py generated_code/CppSimdStandardModel_CppSIMD.cpp --vec-report
+```
+
+### Python vs C++ 벤치마크 재현
+
+Python 시뮬레이터(snnTorch, SpikingJelly)는 무거운 의존성이라 별도 venv를 권장한다.
+
+```bash
+py -3.9 -m venv .venv_bench
+.venv_bench\Scripts\python.exe -m pip install --index-url https://download.pytorch.org/whl/cpu torch
+.venv_bench\Scripts\python.exe -m pip install -r requirements-bench.txt
+.venv_bench\Scripts\python.exe scripts\run_benchmark.py
+```
+
+## 프로젝트 구조
+
+```
+src/
+  parser.py          # 메타모델 로드·검증 + LIF 다이내믹스 표준화
+  codegen.py          # 하드웨어 인식 최적화 + 4개 백엔드 코드 생성
+  lif_dynamics.py      # 시뮬레이터 독립적인 LIF 다이내믹스 단일 계산 지점
+templates/
+  snntorch_template.j2
+  spikingjelly_template.j2
+  bindsnet_template.j2
+  cpp_simd_template.j2  # branch-free, auto-vectorizable C++ 커널
+examples/              # 8종 메타모델 예제 (프레임워크 × 표준/저전력)
+scripts/
+  build_cpp.py          # MSVC 컴파일·실행 헬퍼
+  run_benchmark.py       # Python vs C++ 지연시간 벤치마크
+tests/
+  test_codegen.py         # 정적 검증 + LIF/surrogate/step_mode 표준화 검증
+  test_cpp_backend.py      # C++ 코드 생성 + 실제 컴파일·실행 검증
+```
+
+## 다음 단계
+
+- BindsNET을 C++/SIMD 벤치마크 비교에 포함
+- 실제 MCU/임베디드 타깃(ARM Cortex-M 등) 크로스컴파일 및 전력 실측
+- 학습된 가중치 기반 정확도 검증 (현재는 순전파 지연시간만 비교)
+- Conv/RNN 등 레이어 타입 확장
+
+## License
+
+[MIT](LICENSE)
